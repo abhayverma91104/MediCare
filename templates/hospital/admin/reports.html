@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}Hospital Analytics & Reports | MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Hospital Reports & ORM Aggregation</h2>
+            <p class="text-muted small mb-0">Quantitative analysis of doctor workloads, common clinical diagnoses, and patient visit volumes</p>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> Print Report
+        </button>
+    </div>
+
+    <!-- 1. Doctor Workload Aggregation Table -->
+    <div class="card card-custom mb-4">
+        <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+            <h5 class="fw-bold mb-0"><i class="bi bi-person-workspace text-primary me-2"></i> Doctor Workload Analysis</h5>
+            <span class="badge bg-light text-muted border">ORM: Count('appointments')</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-custom align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Doctor Name</th>
+                        <th>Department</th>
+                        <th>Specialization</th>
+                        <th>Total Assigned</th>
+                        <th>Completed</th>
+                        <th>Pending / Confirmed</th>
+                        <th>Completion Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in doctor_workload %}
+                    <tr>
+                        <td class="fw-bold text-dark">Dr. {{ doc.user.get_full_name }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ doc.department.name|default:"General" }}</span></td>
+                        <td>{{ doc.specialization }}</td>
+                        <td class="fw-bold">{{ doc.total_appts }}</td>
+                        <td class="text-success fw-semibold">{{ doc.completed_appts }}</td>
+                        <td class="text-warning fw-semibold">{{ doc.pending_appts }}</td>
+                        <td>
+                            {% if doc.total_appts > 0 %}
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                        <div class="progress-bar bg-success" style="width: {% widthratio doc.completed_appts doc.total_appts 100 %}%;"></div>
+                                    </div>
+                                    <span class="small text-muted">{% widthratio doc.completed_appts doc.total_appts 100 %}%</span>
+                                </div>
+                            {% else %}
+                                <span class="text-muted small">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No doctor workload data available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 2. Clinical Diagnoses & Monthly Activity Side by Side -->
+    <div class="row g-4">
+        <!-- Most Common Diagnoses -->
+        <div class="col-lg-6">
+            <div class="card card-custom h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-clipboard2-pulse text-danger me-2"></i> Most Common Diagnoses</h5>
+                    <span class="badge bg-light text-muted border">Top 8</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Clinical Diagnosis</th>
+                                <th class="text-end">Patient Cases</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for diag in top_diagnoses %}
+                            <tr>
+                                <td class="fw-medium text-dark">{{ diag.diagnosis }}</td>
+                                <td class="text-end">
+                                    <span class="badge bg-danger-subtle text-danger px-3 py-1 fs-6">{{ diag.frequency }}</span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center py-4 text-muted">No diagnoses recorded yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Breakdown -->
+        <div class="col-lg-6">
+            <div class="card card-custom h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-calendar-range text-info me-2"></i> Monthly Visit & Revenue Trends</h5>
+                    <span class="badge bg-light text-muted border">Last 6 Months</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Appointments</th>
+                                <th class="text-end">Paid Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in monthly_stats %}
+                            <tr>
+                                <td class="fw-semibold">{{ m.month }}</td>
+                                <td>
+                                    <span class="badge bg-primary-subtle text-primary">{{ m.appointments }} visits</span>
+                                </td>
+                                <td class="text-end fw-bold text-success">
+                                    ₹{{ m.revenue|floatformat:2 }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted">No monthly stats available.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

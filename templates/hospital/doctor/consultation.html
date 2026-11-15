@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+
+{% block title %}Clinical Consultation | Dr. {{ doctor.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary-subtle text-primary fw-semibold px-2 py-1">Appointment #{{ appointment.id }}</span>
+                <h3 class="fw-bold mb-0">Clinical Consultation Workspace</h3>
+            </div>
+            <p class="text-muted small mb-0 mt-1">
+                Patient: <strong>{{ appointment.patient.user.get_full_name }}</strong> &bull; Scheduled: {{ appointment.appointment_date }} at {{ appointment.appointment_time|time:"H:i" }}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'doctor_patient_history' appointment.patient.id %}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-clock-history me-1"></i> Patient History (New Tab)
+            </a>
+            <a href="{% url 'doctor_dashboard' %}" class="btn btn-light border btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back to Queue
+            </a>
+        </div>
+    </div>
+
+    <!-- Patient Profile & Chief Complaint Ribbon -->
+    <div class="card card-custom p-3 mb-4 bg-light">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-3">
+                <div class="text-muted small">Patient Name & ID</div>
+                <div class="fw-bold fs-6">{{ appointment.patient.user.get_full_name }}</div>
+                <small class="text-muted">PAT-{{ appointment.patient.id }}</small>
+            </div>
+            <div class="col-md-2">
+                <div class="text-muted small">Age & Gender</div>
+                <div class="fw-semibold">{{ appointment.patient.age|default:"—" }} yrs &bull; {{ appointment.patient.get_gender_display }}</div>
+            </div>
+            <div class="col-md-2">
+                <div class="text-muted small">Blood Group</div>
+                <span class="badge bg-danger-subtle text-danger fs-6">{{ appointment.patient.blood_group|default:"Not Tested" }}</span>
+            </div>
+            <div class="col-md-2">
+                <div class="text-muted small">Contact Phone</div>
+                <div class="fw-semibold">{{ appointment.patient.phone_number }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Chief Complaint</div>
+                <div class="fw-medium text-dark text-truncate" title="{{ appointment.reason }}">{{ appointment.reason }}</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" id="consultationForm">
+        {% csrf_token %}
+
+        <div class="row g-4 mb-4">
+            <!-- 1. Patient Vitals Card -->
+            <div class="col-lg-4">
+                <div class="card card-custom h-100">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="fw-bold mb-0 text-primary">
+                            <i class="bi bi-activity me-1"></i> Patient Vitals
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Blood Pressure</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-heart-pulse"></i></span>
+                                {{ vital_form.blood_pressure }}
+                            </div>
+                            <small class="text-muted">e.g. 120/80 mmHg</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Pulse Rate</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-speedometer2"></i></span>
+                                {{ vital_form.pulse_rate }}
+                                <span class="input-group-text bg-light">bpm</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Body Temperature</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-thermometer-half"></i></span>
+                                {{ vital_form.temperature }}
+                                <span class="input-group-text bg-light">°F</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Body Weight</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                                {{ vital_form.weight }}
+                                <span class="input-group-text bg-light">kg</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Oxygen Saturation (SpO2)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-droplet"></i></span>
+                                {{ vital_form.oxygen_saturation }}
+                                <span class="input-group-text bg-light">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Clinical Notes & Diagnosis Card -->
+            <div class="col-lg-8">
+                <div class="card card-custom h-100">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="fw-bold mb-0 text-primary">
+                            <i class="bi bi-clipboard2-check me-1"></i> Clinical Assessment & Diagnosis
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Presenting Symptoms & Clinical Findings</label>
+                            {{ record_form.symptoms }}
+                            <small class="text-muted">Detailed patient complaints, duration, and doctor's physical examination notes</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Clinical Diagnosis <span class="text-danger">*</span></label>
+                            {{ record_form.diagnosis }}
+                            {% if record_form.diagnosis.errors %}<div class="text-danger small">{{ record_form.diagnosis.errors.0 }}</div>{% endif %}
+                            <small class="text-muted">Primary clinical condition, e.g. "Acute Bronchitis", "Hypertension Stage 1", etc.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Doctor's Advice & Lifestyle Guidance</label>
+                            {{ record_form.notes }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Dynamic Prescription Formset Card -->
+        <div class="card card-custom mb-4">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="fw-bold mb-0 text-primary">
+                        <i class="bi bi-prescription2 me-1"></i> Digital Prescription (Rx)
+                    </h5>
+                    <small class="text-muted">Add required medications, dosage regimen, and course duration</small>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="addPrescriptionRowBtn">
+                    <i class="bi bi-plus-lg me-1"></i> Add Medication
+                </button>
+            </div>
+            <div class="card-body p-0">
+                {{ formset.management_form }}
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle mb-0" id="prescriptionTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">Medicine <span class="text-danger">*</span></th>
+                                <th style="width: 18%;">Dosage</th>
+                                <th style="width: 18%;">Frequency</th>
+                                <th style="width: 12%;">Duration (Days)</th>
+                                <th style="width: 20%;">Instructions</th>
+                                <th style="width: 7%;" class="text-center">Remove</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prescriptionRows">
+                            {% for form in formset %}
+                            <tr class="prescription-form-row">
+                                <td>
+                                    {{ form.id }}
+                                    {{ form.medicine }}
+                                    {% if form.medicine.errors %}<div class="text-danger small">{{ form.medicine.errors.0 }}</div>{% endif %}
+                                </td>
+                                <td>{{ form.dosage }}</td>
+                                <td>{{ form.frequency }}</td>
+                                <td>{{ form.duration_days }}</td>
+                                <td>{{ form.instructions }}</td>
+                                <td class="text-center">
+                                    {% if form.instance.pk %}
+                                        <div class="form-check d-inline-block">
+                                            {{ form.DELETE }}
+                                            <label class="form-check-label text-danger small">Del</label>
+                                        </div>
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit & Actions -->
+        <div class="d-flex align-items-center justify-content-between p-3 bg-white border rounded-3 mb-5 shadow-sm">
+            <div>
+                <span class="badge bg-success-subtle text-success p-2">
+                    <i class="bi bi-receipt me-1"></i> Automatic Billing: Consultation Fee (₹{{ doctor.consultation_fee }}) + Prescribed Medicines
+                </span>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'doctor_dashboard' %}" class="btn btn-light border px-4">Cancel</a>
+                <button type="submit" class="btn btn-success btn-lg px-4 fw-bold shadow-sm">
+                    <i class="bi bi-check2-circle me-1"></i> Save & Generate Prescription
+                </button>
+            </div>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const totalFormsInput = document.querySelector('#id_prescriptions-TOTAL_FORMS');
+        const rowsContainer = document.querySelector('#prescriptionRows');
+        const addBtn = document.querySelector('#addPrescriptionRowBtn');
+
+        if (addBtn && totalFormsInput && rowsContainer) {
+            addBtn.addEventListener('click', function() {
+                const currentFormCount = parseInt(totalFormsInput.value);
+                const rows = rowsContainer.querySelectorAll('.prescription-form-row');
+                if (rows.length === 0) return;
+
+                // Clone the first row as template
+                const newRow = rows[0].cloneNode(true);
+
+                // Update input names, IDs and reset values
+                newRow.querySelectorAll('input, select, textarea').forEach(input => {
+                    const name = input.getAttribute('name');
+                    if (name) {
+                        const newName = name.replace(/prescriptions-\d+-/, `prescriptions-${currentFormCount}-`);
+                        input.setAttribute('name', newName);
+                    }
+                    const id = input.getAttribute('id');
+                    if (id) {
+                        const newId = id.replace(/id_prescriptions-\d+-/, `id_prescriptions-${currentFormCount}-`);
+                        input.setAttribute('id', newId);
+                    }
+                    if (input.type === 'checkbox') {
+                        input.checked = false;
+                    } else if (input.tagName.toLowerCase() === 'select') {
+                        input.selectedIndex = 0;
+                    } else {
+                        input.value = '';
+                    }
+                });
+
+                // Clear hidden ID field if exists in clone
+                const hiddenId = newRow.querySelector('input[type="hidden"][name$="-id"]');
+                if (hiddenId) {
+                    hiddenId.value = '';
+                }
+
+                // Add remove listener to newly created row
+                const removeBtn = newRow.querySelector('.remove-row-btn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function() {
+                        newRow.remove();
+                    });
+                }
+
+                rowsContainer.appendChild(newRow);
+                totalFormsInput.value = currentFormCount + 1;
+            });
+        }
+
+        // Attach event listeners to existing remove buttons
+        document.querySelectorAll('.remove-row-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const row = btn.closest('.prescription-form-row');
+                const allRows = document.querySelectorAll('.prescription-form-row');
+                if (allRows.length > 1) {
+                    row.remove();
+                } else {
+                    // Just reset values if it's the only row
+                    row.querySelectorAll('input, select').forEach(i => {
+                        if (i.type !== 'hidden') i.value = '';
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
+

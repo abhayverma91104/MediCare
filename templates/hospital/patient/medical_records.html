@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}My Medical Records | MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">My Health Records & Consultations</h2>
+            <p class="text-muted small mb-0">View your clinical consultation history, recorded vitals, and physician prescriptions</p>
+        </div>
+        <a href="{% url 'patient_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Patient Portal
+        </a>
+    </div>
+
+    <div class="row g-4">
+        {% for record in records %}
+        <div class="col-lg-6">
+            <div class="card card-custom h-100">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="fw-bold text-primary fs-6">{{ record.created_at|date:"M d, Y" }}</span>
+                        <span class="badge bg-light text-dark border ms-2">Dr. {{ record.appointment.doctor.user.get_full_name }}</span>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'patient_record_detail' record.id %}" class="btn btn-outline-primary">
+                            Details
+                        </a>
+                        <a href="{% url 'printable_prescription' record.id %}" target="_blank" class="btn btn-outline-success">
+                            <i class="bi bi-printer me-1"></i> Rx
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="mb-3">
+                        <span class="text-muted small fw-semibold">Clinical Diagnosis:</span>
+                        <div class="fw-bold fs-6 text-danger">{{ record.diagnosis }}</div>
+                    </div>
+
+                    {% if record.symptoms %}
+                    <div class="mb-3">
+                        <span class="text-muted small fw-semibold">Reported Symptoms:</span>
+                        <p class="small text-muted mb-0">{{ record.symptoms|truncatewords:20 }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if record.vitals %}
+                    <div class="p-2 bg-light rounded-3 mb-3 small">
+                        <div class="d-flex justify-content-between">
+                            <span>BP: <strong>{{ record.vitals.blood_pressure|default:"—" }}</strong></span>
+                            <span>Heart: <strong>{{ record.vitals.pulse_rate|default:"—" }} bpm</strong></span>
+                            <span>Temp: <strong>{{ record.vitals.temperature|default:"—" }} °F</strong></span>
+                            <span>SpO2: <strong>{{ record.vitals.oxygen_saturation|default:"—" }}%</strong></span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if record.prescriptions.all %}
+                    <div>
+                        <span class="text-muted small fw-semibold d-block mb-1">Prescribed Medicines:</span>
+                        <ul class="list-unstyled mb-0 small">
+                            {% for pres in record.prescriptions.all %}
+                            <li class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-capsule text-primary"></i>
+                                <span><strong>{{ pres.medicine.name }}</strong> &bull; {{ pres.dosage }} ({{ pres.frequency }})</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <div class="text-muted mb-3"><i class="bi bi-folder-x fs-1"></i></div>
+            <h5 class="fw-bold">No Medical Records on File</h5>
+            <p class="text-muted small">You haven't completed any doctor consultations yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+

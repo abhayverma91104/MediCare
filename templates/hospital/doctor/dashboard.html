@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}Doctor Workspace | MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+    <!-- Top Bar -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h2 class="fw-bold mb-0">Dr. {{ doctor.user.get_full_name }}</h2>
+                <span class="badge bg-primary-subtle text-primary">{{ doctor.specialization }}</span>
+            </div>
+            <p class="text-muted small mb-0 mt-1">
+                <i class="bi bi-building me-1"></i> {{ doctor.department.name|default:"General Medicine" }} &bull; Today's Clinic: {{ today|date:"l, F d, Y" }}
+            </p>
+        </div>
+        <div class="badge bg-light text-dark border p-2 text-start">
+            <div><i class="bi bi-clock me-1 text-primary"></i> <strong>Hours:</strong> {{ doctor.available_time_start|time:"H:i" }} - {{ doctor.available_time_end|time:"H:i" }}</div>
+            <div><i class="bi bi-calendar3 me-1 text-primary"></i> <strong>Days:</strong> {{ doctor.available_days }}</div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <span class="text-muted small fw-bold text-uppercase">Today's Total</span>
+                <h3 class="fw-bold text-dark mt-1 mb-0">{{ stats.today_total }}</h3>
+                <span class="text-muted small">Assigned patients today</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <span class="text-muted small fw-bold text-uppercase">Pending / In Queue</span>
+                <h3 class="fw-bold text-warning mt-1 mb-0">{{ stats.today_pending }}</h3>
+                <span class="text-warning small fw-semibold">Waiting for consultation</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <span class="text-muted small fw-bold text-uppercase">Completed Today</span>
+                <h3 class="fw-bold text-success mt-1 mb-0">{{ stats.today_completed }}</h3>
+                <span class="text-success small fw-semibold">Prescriptions issued</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <span class="text-muted small fw-bold text-uppercase">Total Treated</span>
+                <h3 class="fw-bold text-info mt-1 mb-0">{{ stats.all_time_completed }}</h3>
+                <span class="text-info small fw-semibold">All-time consultations</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Queue -->
+    <div class="card card-custom mb-4">
+        <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+            <h5 class="fw-bold mb-0"><i class="bi bi-person-lines-fill text-primary me-2"></i> Today's Patient Queue</h5>
+            <span class="badge bg-primary">{{ today_appointments.count }} Scheduled</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-custom align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Time Slot</th>
+                        <th>Patient Name</th>
+                        <th>Age / Gender</th>
+                        <th>Blood Group</th>
+                        <th>Chief Complaint</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appt in today_appointments %}
+                    <tr>
+                        <td class="fw-bold text-primary">
+                            <i class="bi bi-clock me-1"></i> {{ appt.appointment_time|time:"H:i" }}
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ appt.patient.user.get_full_name }}</div>
+                            <small class="text-muted">ID: PAT-{{ appt.patient.id }} &bull; {{ appt.patient.phone_number }}</small>
+                        </td>
+                        <td>{{ appt.patient.age|default:"—" }} yrs / {{ appt.patient.get_gender_display }}</td>
+                        <td>
+                            <span class="badge bg-light text-danger border">{{ appt.patient.blood_group|default:"N/A" }}</span>
+                        </td>
+                        <td class="text-truncate" style="max-width: 200px;" title="{{ appt.reason }}">
+                            {{ appt.reason }}
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ appt.status }}">{{ appt.get_status_display }}</span>
+                        </td>
+                        <td>
+                            {% if appt.status != 'completed' and appt.status != 'cancelled' %}
+                                <a href="{% url 'doctor_consultation' appt.id %}" class="btn btn-primary btn-sm fw-semibold shadow-sm">
+                                    <i class="bi bi-clipboard2-pulse me-1"></i> Consult Patient
+                                </a>
+                            {% elif appt.status == 'completed' %}
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'doctor_consultation' appt.id %}" class="btn btn-outline-secondary" title="Edit Consultation">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    {% if appt.medical_record %}
+                                        <a href="{% url 'printable_prescription' appt.medical_record.id %}" class="btn btn-outline-success" title="Print Prescription">
+                                            <i class="bi bi-printer"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-muted small">Cancelled</span>
+                            {% endif %}
+                            <a href="{% url 'doctor_patient_history' appt.patient.id %}" class="btn btn-sm btn-link text-decoration-none" title="History">
+                                <i class="bi bi-clock-history"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No appointments scheduled for today.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Upcoming Appointments -->
+    <div class="card card-custom">
+        <div class="card-header bg-white border-bottom py-3">
+            <h5 class="fw-bold mb-0"><i class="bi bi-calendar3 text-secondary me-2"></i> Upcoming Scheduled Visits</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-custom align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Patient Name</th>
+                        <th>Contact</th>
+                        <th>Chief Complaint</th>
+                        <th>Status</th>
+                        <th>Patient History</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appt in upcoming_appointments %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <div>{{ appt.appointment_date|date:"D, M d, Y" }}</div>
+                            <small class="text-muted">{{ appt.appointment_time|time:"H:i" }}</small>
+                        </td>
+                        <td class="fw-bold text-dark">{{ appt.patient.user.get_full_name }}</td>
+                        <td>{{ appt.patient.phone_number }}</td>
+                        <td>{{ appt.reason }}</td>
+                        <td><span class="status-badge status-{{ appt.status }}">{{ appt.get_status_display }}</span></td>
+                        <td>
+                            <a href="{% url 'doctor_patient_history' appt.patient.id %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-clock-history me-1"></i> Medical History
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-3 text-muted">No upcoming appointments in this window.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

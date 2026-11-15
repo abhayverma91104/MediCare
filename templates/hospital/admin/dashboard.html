@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+
+{% block title %}Hospital Admin Dashboard | MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+    <!-- Top Header & Action Buttons -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Administrative Overview</h2>
+            <p class="text-muted small mb-0">System health, patient influx metrics, and operational summaries</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'admin_doctor_create' %}" class="btn btn-primary btn-sm fw-semibold">
+                <i class="bi bi-person-plus-fill me-1"></i> Add Doctor
+            </a>
+            <a href="{% url 'admin_department_create' %}" class="btn btn-outline-primary btn-sm fw-semibold">
+                <i class="bi bi-diagram-3 me-1"></i> Add Department
+            </a>
+            <a href="{% url 'admin_staff_create' %}" class="btn btn-outline-secondary btn-sm fw-semibold">
+                <i class="bi bi-shield-plus me-1"></i> Provision Staff
+            </a>
+            <a href="{% url 'admin_reports' %}" class="btn btn-light border btn-sm fw-semibold">
+                <i class="bi bi-file-earmark-bar-graph me-1"></i> Full Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 KPI Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold text-uppercase">Total Doctors</span>
+                    <h2 class="fw-bold text-dark mt-1 mb-0">{{ total_doctors }}</h2>
+                    <span class="text-primary small fw-semibold"><i class="bi bi-person-badge me-1"></i> Active Specialists</span>
+                </div>
+                <div class="stat-icon bg-primary-subtle text-primary">
+                    <i class="bi bi-hospital"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold text-uppercase">Registered Patients</span>
+                    <h2 class="fw-bold text-dark mt-1 mb-0">{{ total_patients }}</h2>
+                    <span class="text-success small fw-semibold"><i class="bi bi-people me-1"></i> In System Database</span>
+                </div>
+                <div class="stat-icon bg-success-subtle text-success">
+                    <i class="bi bi-person-lines-fill"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold text-uppercase">Today's Visits</span>
+                    <h2 class="fw-bold text-dark mt-1 mb-0">{{ today_appointments }}</h2>
+                    <span class="text-warning small fw-semibold"><i class="bi bi-hourglass-split me-1"></i> {{ pending_appointments }} Pending</span>
+                </div>
+                <div class="stat-icon bg-warning-subtle text-warning">
+                    <i class="bi bi-calendar2-day"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold text-uppercase">Total Revenue</span>
+                    <h2 class="fw-bold text-dark mt-1 mb-0">₹{{ total_revenue|floatformat:2 }}</h2>
+                    <span class="text-info small fw-semibold"><i class="bi bi-receipt me-1"></i> Paid Invoices</span>
+                </div>
+                <div class="stat-icon bg-info-subtle text-info">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Charts Row (Chart.js) -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card card-custom p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="fw-bold mb-0">Monthly Appointments & Revenue Trend</h5>
+                    <span class="badge bg-light text-muted border">6-Month Window</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="monthlyTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card card-custom p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="fw-bold mb-0">Department Workload</h5>
+                    <span class="badge bg-light text-muted border">Distribution</span>
+                </div>
+                <div style="height: 280px; position: relative;">
+                    <canvas id="deptDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Tables Row -->
+    <div class="row g-4">
+        <!-- Recent Appointments -->
+        <div class="col-lg-8">
+            <div class="card card-custom">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                    <h5 class="fw-bold mb-0">Recent Appointments</h5>
+                    <span class="badge bg-primary-subtle text-primary">Live Activity</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Patient</th>
+                                <th>Doctor</th>
+                                <th>Date & Time</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appt in recent_appointments %}
+                            <tr>
+                                <td class="fw-semibold text-muted">#{{ appt.id }}</td>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ appt.patient.user.get_full_name }}</div>
+                                    <small class="text-muted">{{ appt.patient.phone_number }}</small>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">Dr. {{ appt.doctor.user.get_full_name }}</div>
+                                    <small class="text-muted">{{ appt.doctor.department.name|default:"General" }}</small>
+                                </td>
+                                <td>
+                                    <div>{{ appt.appointment_date }}</div>
+                                    <small class="text-muted">{{ appt.appointment_time|time:"H:i" }}</small>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-{{ appt.status }}">{{ appt.get_status_display }}</span>
+                                </td>
+                                <td>
+                                    {% if appt.medical_record %}
+                                        <a href="{% url 'printable_prescription' appt.medical_record.id %}" class="btn btn-sm btn-outline-success" title="View Prescription">
+                                            <i class="bi bi-file-earmark-medical"></i>
+                                        </a>
+                                    {% endif %}
+                                    {% if appt.invoice %}
+                                        <a href="{% url 'printable_invoice' appt.invoice.id %}" class="btn btn-sm btn-outline-info" title="View Invoice">
+                                            <i class="bi bi-receipt"></i>
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">No appointments recorded yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Patients -->
+        <div class="col-lg-4">
+            <div class="card card-custom">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                    <h5 class="fw-bold mb-0">New Patients</h5>
+                    <a href="{% url 'receptionist_patient_list' %}" class="text-primary text-decoration-none small fw-semibold">View All</a>
+                </div>
+                <div class="p-3">
+                    <div class="d-grid gap-3">
+                        {% for patient in recent_patients %}
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded-2 border">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="bg-light text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-person"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold small">{{ patient.user.get_full_name }}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                        {{ patient.gender }} &bull; {{ patient.blood_group|default:"N/A" }} &bull; {{ patient.phone_number }}
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">PAT-{{ patient.id }}</span>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center py-3 mb-0">No patients registered yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch("{% url 'api_analytics_data' %}")
+            .then(res => res.json())
+            .then(data => {
+                // 1. Monthly Trends Chart
+                const ctxMonthly = document.getElementById('monthlyTrendChart').getContext('2d');
+                new Chart(ctxMonthly, {
+                    type: 'bar',
+                    data: {
+                        labels: data.monthly.labels,
+                        datasets: [
+                            {
+                                label: 'Appointments',
+                                data: data.monthly.appointments,
+                                backgroundColor: '#0284c7',
+                                borderRadius: 6,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Revenue (₹)',
+                                data: data.monthly.revenue,
+                                type: 'line',
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                tension: 0.3,
+                                fill: true,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: { display: true, text: 'Appointments' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                grid: { drawOnChartArea: false },
+                                title: { display: true, text: 'Revenue (₹)' }
+                            }
+                        }
+                    }
+                });
+
+                // 2. Department Distribution Chart
+                const ctxDept = document.getElementById('deptDistributionChart').getContext('2d');
+                new Chart(ctxDept, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.departments.labels,
+                        datasets: [{
+                            data: data.departments.data,
+                            backgroundColor: ['#0284c7', '#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#e0f2fe']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            })
+            .catch(err => console.error("Error loading analytics:", err));
+    });
+</script>
+{% endblock %}
+

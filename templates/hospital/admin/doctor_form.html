@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} | MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card card-custom p-4 p-md-5">
+                <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+                    <div>
+                        <h3 class="fw-bold mb-1">{{ title }}</h3>
+                        <p class="text-muted small mb-0">Configure doctor credentials, specialty, and clinic hours</p>
+                    </div>
+                    <a href="{% url 'admin_doctor_list' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Back to List
+                    </a>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if not doctor %}
+                    <h6 class="fw-bold text-primary text-uppercase small border-bottom pb-2 mb-3">
+                        <i class="bi bi-key me-1"></i> Login Credentials
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Username <span class="text-danger">*</span></label>
+                            <input type="text" name="username" class="form-control" placeholder="e.g. dr_verma" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Password <span class="text-danger">*</span></label>
+                            <input type="password" name="password" class="form-control" placeholder="Temporary password" required>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <h6 class="fw-bold text-primary text-uppercase small border-bottom pb-2 mb-3">
+                        <i class="bi bi-person-badge me-1"></i> Doctor Bio & Contact
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">First Name <span class="text-danger">*</span></label>
+                            {{ form.first_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Last Name <span class="text-danger">*</span></label>
+                            {{ form.last_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Email Address <span class="text-danger">*</span></label>
+                            {{ form.email }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Phone Number <span class="text-danger">*</span></label>
+                            {{ form.phone_number }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Department <span class="text-danger">*</span></label>
+                            {{ form.department }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Specialization <span class="text-danger">*</span></label>
+                            {{ form.specialization }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Consultation Fee (₹)</label>
+                            {{ form.consultation_fee }}
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-primary text-uppercase small border-bottom pb-2 mb-3">
+                        <i class="bi bi-clock-history me-1"></i> Availability & Clinic Schedule
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold small d-block mb-2">Available Days</label>
+                            <div class="d-flex flex-wrap gap-3 p-3 bg-light rounded-3 border">
+                                {% for day_val, day_label in form.fields.days_selection.choices %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="days_selection" value="{{ day_val }}" id="day_{{ day_val }}"
+                                    {% if day_val in form.days_selection.value or day_val in form.initial.days_selection %}checked{% endif %}>
+                                    <label class="form-check-label fw-medium" for="day_{{ day_val }}">{{ day_label }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Available From</label>
+                            {{ form.available_time_start }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Available Until</label>
+                            {{ form.available_time_end }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a href="{% url 'admin_doctor_list' %}" class="btn btn-light border px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                            <i class="bi bi-save me-1"></i> Save Doctor Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

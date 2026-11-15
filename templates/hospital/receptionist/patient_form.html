@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Register Patient | MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card card-custom p-4 p-md-5">
+                <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+                    <div>
+                        <h3 class="fw-bold mb-1">Register New Patient</h3>
+                        <p class="text-muted small mb-0">Front-desk intake and credential generation</p>
+                    </div>
+                    <a href="{% url 'receptionist_patient_list' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Directory
+                    </a>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <h6 class="fw-bold text-primary text-uppercase small border-bottom pb-2 mb-3">
+                        <i class="bi bi-person-badge me-1"></i> Patient Credentials
+                    </h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">First Name <span class="text-danger">*</span></label>
+                            {{ form.first_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Last Name <span class="text-danger">*</span></label>
+                            {{ form.last_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Username <span class="text-danger">*</span></label>
+                            {{ form.username }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Email Address <span class="text-danger">*</span></label>
+                            {{ form.email }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Password <span class="text-danger">*</span></label>
+                            {{ form.password }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Confirm Password <span class="text-danger">*</span></label>
+                            {{ form.confirm_password }}
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-primary text-uppercase small border-bottom pb-2 mb-3 mt-4">
+                        <i class="bi bi-heart-pulse me-1"></i> Medical Demographics & Contact
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small">Date of Birth <span class="text-danger">*</span></label>
+                            {{ form.date_of_birth }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small">Gender <span class="text-danger">*</span></label>
+                            {{ form.gender }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small">Blood Group</label>
+                            {{ form.blood_group }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Phone Number <span class="text-danger">*</span></label>
+                            {{ form.phone_number }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Emergency Contact</label>
+                            {{ form.emergency_contact }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold small">Address</label>
+                            {{ form.address }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a href="{% url 'receptionist_patient_list' %}" class="btn btn-light border px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                            <i class="bi bi-check2-circle me-1"></i> Register Patient
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

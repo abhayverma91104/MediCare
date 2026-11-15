@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In | MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-5">
+            <div class="card card-custom p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="brand-icon mx-auto mb-3" style="width: 52px; height: 52px; font-size: 1.75rem;">
+                        <i class="bi bi-shield-lock"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">Welcome Back</h3>
+                    <p class="text-muted small">Sign in to your hospital role account</p>
+                </div>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
+                            {{ form.username }}
+                        </div>
+                        {% if form.username.errors %}
+                            <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small text-muted">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-key"></i></span>
+                            {{ form.password }}
+                        </div>
+                        {% if form.password.errors %}
+                            <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm mb-3">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Portal
+                    </button>
+                </form>
+
+                <div class="text-center mt-3 pt-3 border-top">
+                    <p class="text-muted small mb-0">
+                        New patient? <a href="{% url 'register' %}" class="fw-semibold text-decoration-none">Create a patient account</a>
+                    </p>
+                </div>
+
+                <!-- Demonstration Quick Access Badges -->
+                <div class="mt-4 p-3 bg-light rounded-3 border">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="small fw-bold text-dark"><i class="bi bi-key-fill text-warning me-1"></i> Demo Credentials</span>
+                        <span class="badge bg-secondary-subtle text-secondary small">Seed Data</span>
+                    </div>
+                    <div class="small text-muted mb-2">Click to auto-fill sample credentials:</div>
+                    <div class="d-grid gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-danger text-start d-flex justify-content-between align-items-center" onclick="fillCreds('admin', 'admin123')">
+                            <span><strong>Admin:</strong> admin</span>
+                            <span class="badge bg-danger">admin123</span>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary text-start d-flex justify-content-between align-items-center" onclick="fillCreds('dr_sharma', 'doctor123')">
+                            <span><strong>Doctor:</strong> dr_sharma</span>
+                            <span class="badge bg-primary">doctor123</span>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning text-dark text-start d-flex justify-content-between align-items-center" onclick="fillCreds('receptionist', 'recep123')">
+                            <span><strong>Receptionist:</strong> receptionist</span>
+                            <span class="badge bg-warning text-dark">recep123</span>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success text-start d-flex justify-content-between align-items-center" onclick="fillCreds('rahul_verma', 'patient123')">
+                            <span><strong>Patient:</strong> rahul_verma</span>
+                            <span class="badge bg-success">patient123</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function fillCreds(u, p) {
+        document.querySelector('input[name="username"]').value = u;
+        document.querySelector('input[name="password"]').value = p;
+    }
+</script>
+{% endblock %}
+

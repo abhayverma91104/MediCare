@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}Book Hospital Appointment | MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card card-custom p-4 p-md-5">
+                <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+                    <div>
+                        <h3 class="fw-bold mb-1">Book Patient Appointment</h3>
+                        <p class="text-muted small mb-0">Schedule doctor consultation with automatic double-booking prevention</p>
+                    </div>
+                    <a href="{% url 'receptionist_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i> Dashboard
+                    </a>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <div><i class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Patient <span class="text-danger">*</span></label>
+                        {{ form.patient }}
+                        {% if form.patient.errors %}<div class="text-danger small">{{ form.patient.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Consulting Doctor <span class="text-danger">*</span></label>
+                        {{ form.doctor }}
+                        {% if form.doctor.errors %}<div class="text-danger small">{{ form.doctor.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Appointment Date <span class="text-danger">*</span></label>
+                            {{ form.appointment_date }}
+                            {% if form.appointment_date.errors %}<div class="text-danger small">{{ form.appointment_date.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Appointment Time <span class="text-danger">*</span></label>
+                            {{ form.appointment_time }}
+                            {% if form.appointment_time.errors %}<div class="text-danger small">{{ form.appointment_time.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Slot Helper Preview -->
+                    <div id="slotAvailabilityBox" class="p-3 bg-light rounded-3 border mb-3 d-none">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="small fw-bold text-dark"><i class="bi bi-clock-history me-1"></i> Doctor Slot Availability</span>
+                            <span id="availabilityBadge" class="badge"></span>
+                        </div>
+                        <div id="slotsPillContainer" class="d-flex flex-wrap gap-1"></div>
+                        <small class="text-muted d-block mt-2">Click any open time pill to auto-select that appointment time.</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small">Reason for Visit / Chief Complaint <span class="text-danger">*</span></label>
+                        {{ form.reason }}
+                        {% if form.reason.errors %}<div class="text-danger small">{{ form.reason.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a href="{% url 'receptionist_dashboard' %}" class="btn btn-light border px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                            <i class="bi bi-calendar-check me-1"></i> Confirm Booking
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const doctorSelect = document.querySelector('#id_doctor_select');
+        const dateInput = document.querySelector('#id_appointment_date');
+        const timeInput = document.querySelector('#id_appointment_time');
+        const slotBox = document.querySelector('#slotAvailabilityBox');
+        const badge = document.querySelector('#availabilityBadge');
+        const pillsContainer = document.querySelector('#slotsPillContainer');
+
+        function checkSlots() {
+            const docId = doctorSelect ? doctorSelect.value : null;
+            const apptDate = dateInput ? dateInput.value : null;
+
+            if (!docId || !apptDate) {
+                if (slotBox) slotBox.classList.add('d-none');
+                return;
+            }
+
+            fetch(`{% url 'api_doctor_availability' %}?doctor_id=${docId}&date=${apptDate}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        slotBox.classList.add('d-none');
+                        return;
+                    }
+                    slotBox.classList.remove('d-none');
+                    pillsContainer.innerHTML = '';
+
+                    if (!data.is_available_day) {
+                        badge.className = 'badge bg-danger';
+                        badge.textContent = `Off-duty (${data.available_days.join(', ')})`;
+                        pillsContainer.innerHTML = '<span class="text-danger small">Doctor is not available on this day of the week.</span>';
+                        return;
+                    }
+
+                    badge.className = 'badge bg-success';
+                    badge.textContent = `Available (${data.start_time} - ${data.end_time})`;
+
+                    data.slots.forEach(slot => {
+                        const pill = document.createElement('button');
+                        pill.type = 'button';
+                        pill.className = `btn btn-sm ${slot.is_booked ? 'btn-secondary disabled' : 'btn-outline-primary'}`;
+                        pill.textContent = slot.time;
+                        if (!slot.is_booked) {
+                            pill.addEventListener('click', () => {
+                                timeInput.value = slot.time;
+                            });
+                        }
+                        pillsContainer.appendChild(pill);
+                    });
+                })
+                .catch(() => slotBox.classList.add('d-none'));
+        }
+
+        if (doctorSelect) doctorSelect.addEventListener('change', checkSlots);
+        if (dateInput) dateInput.addEventListener('change', checkSlots);
+    });
+</script>
+{% endblock %}
+

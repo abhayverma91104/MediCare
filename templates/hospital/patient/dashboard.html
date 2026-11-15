@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Portal | MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+    <!-- Top Welcome Banner -->
+    <div class="card card-custom p-4 mb-4 bg-gradient" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white;">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <span class="badge bg-white text-primary mb-2">Patient Digital Portal</span>
+                <h2 class="fw-bold mb-1 text-white">Welcome, {{ patient.user.get_full_name }}</h2>
+                <p class="text-white-50 small mb-0">
+                    Patient ID: <strong>PAT-{{ patient.id }}</strong> &bull; Blood Group: <strong>{{ patient.blood_group|default:"Not Tested" }}</strong> &bull; Contact: {{ patient.phone_number }}
+                </p>
+            </div>
+            <a href="{% url 'patient_appointment_book' %}" class="btn btn-light text-primary btn-lg fw-bold shadow-sm">
+                <i class="bi bi-calendar-plus me-1"></i> Book New Appointment
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Upcoming Appointments -->
+        <div class="col-lg-7">
+            <div class="card card-custom mb-4">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                    <h5 class="fw-bold mb-0 text-primary">
+                        <i class="bi bi-calendar2-check me-2"></i> Upcoming Appointments
+                    </h5>
+                    <a href="{% url 'patient_appointment_book' %}" class="btn btn-sm btn-outline-primary">
+                        + New Booking
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Doctor</th>
+                                <th>Department</th>
+                                <th>Date & Time</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appt in upcoming_appointments %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">Dr. {{ appt.doctor.user.get_full_name }}</div>
+                                    <small class="text-muted">{{ appt.doctor.specialization }}</small>
+                                </td>
+                                <td><span class="badge bg-light text-dark border">{{ appt.doctor.department.name|default:"General" }}</span></td>
+                                <td>
+                                    <div class="fw-semibold">{{ appt.appointment_date|date:"D, M d, Y" }}</div>
+                                    <small class="text-muted"><i class="bi bi-clock me-1"></i> {{ appt.appointment_time|time:"H:i" }}</small>
+                                </td>
+                                <td><span class="status-badge status-{{ appt.status }}">{{ appt.get_status_display }}</span></td>
+                                <td>
+                                    {% if appt.status == 'pending' or appt.status == 'confirmed' %}
+                                        <a href="{% url 'patient_appointment_cancel' appt.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this appointment?');">
+                                            Cancel
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    You have no active upcoming appointments.
+                                    <div class="mt-2">
+                                        <a href="{% url 'patient_appointment_book' %}" class="btn btn-sm btn-primary">Book Consultation Now</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Past Consultations & Records -->
+            <div class="card card-custom">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                    <h5 class="fw-bold mb-0 text-success">
+                        <i class="bi bi-file-earmark-medical me-2"></i> Clinical History & Prescriptions
+                    </h5>
+                    <a href="{% url 'patient_medical_records' %}" class="text-primary text-decoration-none small fw-semibold">View All Records</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-custom align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Doctor</th>
+                                <th>Diagnosis</th>
+                                <th>Prescription</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in medical_records %}
+                            <tr>
+                                <td class="fw-semibold">{{ record.created_at|date:"M d, Y" }}</td>
+                                <td>Dr. {{ record.appointment.doctor.user.get_full_name }}</td>
+                                <td class="fw-bold text-dark">{{ record.diagnosis }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'patient_record_detail' record.id %}" class="btn btn-outline-secondary">
+                                            View
+                                        </a>
+                                        <a href="{% url 'printable_prescription' record.id %}" target="_blank" class="btn btn-outline-success">
+                                            <i class="bi bi-printer"></i> Rx
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">No past clinical records.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoices & Billing Column -->
+        <div class="col-lg-5">
+            <div class="card card-custom">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="bi bi-receipt me-2"></i> Medical Bills & Receipts
+                    </h5>
+                    <span class="badge bg-light text-muted border">Recent</span>
+                </div>
+                <div class="p-3">
+                    <div class="d-grid gap-3">
+                        {% for inv in invoices %}
+                        <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="fw-bold text-dark">Invoice #{{ inv.id|stringformat:"05d" }}</div>
+                                <small class="text-muted">{{ inv.issued_at|date:"M d, Y" }} &bull; Dr. {{ inv.appointment.doctor.user.last_name }}</small>
+                                <div class="mt-1">
+                                    {% if inv.status == 'paid' %}
+                                        <span class="badge bg-success-subtle text-success">Paid via {{ inv.get_payment_method_display }}</span>
+                                    {% else %}
+                                        <span class="badge bg-danger-subtle text-danger">Payment Pending</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold fs-5 text-dark">₹{{ inv.total_amount }}</div>
+                                <a href="{% url 'printable_invoice' inv.id %}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
+                                    <i class="bi bi-printer me-1"></i> Receipt
+                                </a>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center py-4 mb-0">No invoices on file.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

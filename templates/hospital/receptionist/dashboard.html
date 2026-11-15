@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}Receptionist Desk | MediCare HMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Reception & Triage Desk</h2>
+            <p class="text-muted small mb-0">Today's hospital schedule: {{ today|date:"l, F d, Y" }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'receptionist_patient_create' %}" class="btn btn-primary btn-sm fw-semibold">
+                <i class="bi bi-person-plus-fill me-1"></i> Register Walk-in Patient
+            </a>
+            <a href="{% url 'receptionist_appointment_book' %}" class="btn btn-success btn-sm fw-semibold">
+                <i class="bi bi-calendar-plus me-1"></i> Book Appointment
+            </a>
+            <a href="{% url 'invoice_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">
+                <i class="bi bi-receipt me-1"></i> Billing Desk
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <span class="text-muted small fw-bold text-uppercase">Total Today</span>
+                <h3 class="fw-bold text-dark mt-1 mb-0">{{ stats.today_appointments_count }}</h3>
+                <span class="text-muted small">Hospital-wide visits</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <span class="text-muted small fw-bold text-uppercase">Checked In</span>
+                <h3 class="fw-bold text-primary mt-1 mb-0">{{ stats.confirmed_count }}</h3>
+                <span class="text-primary small fw-semibold">Confirmed & waiting</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <span class="text-muted small fw-bold text-uppercase">Pending Arrival</span>
+                <h3 class="fw-bold text-warning mt-1 mb-0">{{ stats.pending_count }}</h3>
+                <span class="text-warning small fw-semibold">Awaiting patient check-in</span>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <span class="text-muted small fw-bold text-uppercase">Unpaid Invoices</span>
+                <h3 class="fw-bold text-danger mt-1 mb-0">{{ stats.unpaid_invoices_count }}</h3>
+                <span class="text-danger small fw-semibold">Pending cash/card collection</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Master Schedule Table -->
+    <div class="card card-custom mb-4">
+        <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+            <h5 class="fw-bold mb-0"><i class="bi bi-clock-history text-primary me-2"></i> Today's Schedule & Patient Check-in</h5>
+            <span class="badge bg-light text-muted border">{{ today_appointments.count }} Records</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-custom align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Patient</th>
+                        <th>Assigned Doctor</th>
+                        <th>Reason / Symptoms</th>
+                        <th>Status</th>
+                        <th>Queue Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appt in today_appointments %}
+                    <tr>
+                        <td class="fw-bold text-primary fs-6">{{ appt.appointment_time|time:"H:i" }}</td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ appt.patient.user.get_full_name }}</div>
+                            <small class="text-muted">PAT-{{ appt.patient.id }} &bull; {{ appt.patient.phone_number }}</small>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">Dr. {{ appt.doctor.user.get_full_name }}</div>
+                            <small class="text-muted">{{ appt.doctor.department.name|default:"General" }}</small>
+                        </td>
+                        <td class="text-truncate" style="max-width: 200px;" title="{{ appt.reason }}">{{ appt.reason }}</td>
+                        <td><span class="status-badge status-{{ appt.status }}">{{ appt.get_status_display }}</span></td>
+                        <td>
+                            <div class="d-flex align-items-center gap-1">
+                                {% if appt.status == 'pending' %}
+                                    <form method="post" action="{% url 'appointment_status_update' appt.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="confirmed">
+                                        <button type="submit" class="btn btn-sm btn-success" title="Check-in Patient">
+                                            <i class="bi bi-check2"></i> Check-in
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'appointment_status_update' appt.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="cancelled">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="No-show / Cancel">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </form>
+                                {% elif appt.status == 'confirmed' %}
+                                    <span class="badge bg-primary-subtle text-primary p-2">Ready in Queue</span>
+                                {% elif appt.status == 'completed' %}
+                                    {% if appt.invoice %}
+                                        {% if appt.invoice.status == 'unpaid' %}
+                                            <a href="{% url 'invoice_collect_payment' appt.invoice.id %}" class="btn btn-sm btn-warning fw-semibold">
+                                                <i class="bi bi-currency-rupee me-1"></i> Collect ₹{{ appt.invoice.total_amount }}
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'printable_invoice' appt.invoice.id %}" class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-receipt me-1"></i> Receipt
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted small">Cancelled</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No appointments scheduled for today.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Unpaid Invoices Stream -->
+    <div class="card card-custom">
+        <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+            <h5 class="fw-bold mb-0 text-danger"><i class="bi bi-exclamation-circle me-2"></i> Pending Patient Payments</h5>
+            <a href="{% url 'invoice_list' %}?status=unpaid" class="text-primary text-decoration-none small fw-semibold">View All Unpaid</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-custom align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Patient</th>
+                        <th>Doctor Consultation</th>
+                        <th>Amount Due</th>
+                        <th>Issued At</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in unpaid_invoices %}
+                    <tr>
+                        <td class="fw-bold text-dark">#{{ inv.id|stringformat:"05d" }}</td>
+                        <td>{{ inv.patient.user.get_full_name }} ({{ inv.patient.phone_number }})</td>
+                        <td>Dr. {{ inv.appointment.doctor.user.get_full_name }}</td>
+                        <td class="fw-bold text-danger">₹{{ inv.total_amount }}</td>
+                        <td class="text-muted small">{{ inv.issued_at|date:"M d, H:i" }}</td>
+                        <td>
+                            <a href="{% url 'invoice_collect_payment' inv.id %}" class="btn btn-sm btn-success fw-semibold">
+                                <i class="bi bi-cash me-1"></i> Settle Bill
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-3 text-muted">All outstanding hospital bills are currently settled.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
