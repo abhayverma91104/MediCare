@@ -1,16 +1,5 @@
 # MediCare - Hospital Management System (HMS)
 
-> **Academic Project Submission**: Jaypee Institute of Information Technology (JIIT)  
-> **Course**: Full-Stack Web Development  
-> **Supervisor**: Dr. Diksha Pandey  
-> **Project Team**:
-> - Guneet Chhabra (2401200036)
-> - Abhay Verma (2401200051)
-> - Utkarsh Singh (2401200055)
-> - Krishnam Dalmia (2401200060)
-
----
-
 ## 🏥 Overview
 
 The **MediCare Hospital Management System (HMS)** is a full-stack web application built using Python and the Django framework. Designed to replace paper-based clinic workflows, the system provides a secure, role-based platform connecting **Hospital Administrators**, **Specialist Doctors**, **Front-Desk Receptionists**, and **Patients**.
